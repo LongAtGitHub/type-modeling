@@ -68,10 +68,10 @@ public class PythonObject {
      */
     public final PythonObject get(String attrName) throws PythonAttributeException {
         if (attrs.containsKey(attrName)) return attrs.get(attrName);
-        PythonObject found = null;
         for (PythonObject methods : getMRO()) {
-            found = methods.attrs.get(attrName);
-            if (found != null) return found;
+            if (methods.attrs.containsKey(attrName)) {
+                return methods.attrs.get(attrName);
+            }
         }
         throw new PythonAttributeException(this, attrName); 
     }
