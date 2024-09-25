@@ -172,6 +172,12 @@ class JavaNullType(JavaType):
     """
     def __init__(self):
         super().__init__("null")
+        self.is_instantiable = False
+        self.is_object_type = True
+    def is_subtype_of(self, other):
+        if self == other: return True
+        if not other.is_instantiable: return False
+        return True
 
 
 class JavaTypeError(Exception):

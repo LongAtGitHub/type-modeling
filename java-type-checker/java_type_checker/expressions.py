@@ -84,10 +84,13 @@ class JavaAssignment(JavaExpression):
     def static_type(self):
         return self.lhs.static_type()
     def check_types(self):
-        lhs_type = self.lhs.static_type()
+        self.lhs.check_types()
+        self.rhs.check_types()
+        lhs_type = self.lhs.declared_type
         rhs_type = self.rhs.static_type()
         if lhs_type == rhs_type: return
-        if rhs_type.is_subtype_of(lhs_type): return
+        if rhs_type.is_subtype_of(lhs_type): 
+            return
         raise JavaTypeMismatchError(f"Cannot assign {rhs_type.name} to variable {self.lhs.name} of type {lhs_type.name}")
 
 
@@ -118,21 +121,26 @@ class JavaMethodCall(JavaExpression):
         return java_method.return_type
 
     def check_types(self):
+        self.receiver.check_types()
         receiver_type = self.receiver.static_type()
+        if receiver_type == JavaBuiltInTypes.NULL:
+            raise NoSuchJavaMethod(f"Cannot invoke method {self.method_name}() on null")
+        # check primitive
         if not receiver_type.is_object_type and not receiver_type.is_instantiable: 
             raise NoSuchJavaMethod(f"Type {receiver_type.name} does not have methods")
+        # check has that method
         try:
             java_method = receiver_type.method_named(self.method_name)
         except:
             raise NoSuchJavaMethod(f"{receiver_type.name} has no method named {self.method_name}")
-        if not java_method:
-            raise NoSuchJavaMethod(f"Type {receiver_type.name} does not have methods")
         params = java_method.parameter_types
         if len(self.args) != len(params):
             raise JavaArgumentCountError(f"Wrong number of arguments for {receiver_type.name}.{self.method_name}{"()"}: expected {len(java_method.parameter_types)}, got {len(self.args)}")
         for i in range(len(params)):
+            self.args[i].check_types()
             argType = self.args[i].static_type()
-            if argType == params[i] or  argType.is_subtype_of(params[i]): continue
+            if argType.name == params[i].name or argType.is_subtype_of(params[i]): 
+                continue
             else:
                 expected_types = ", ".join([p.name for p in params])
                 received_types = ", ".join([arg.static_type().name for arg in self.args])
